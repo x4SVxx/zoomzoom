@@ -1,0 +1,680 @@
+import asyncio
+import math
+import random
+import time
+import keyboard
+import numpy as np
+from tkinter import filedialog as fd
+from tkinter import *
+import tkinter.messagebox as message
+from tag import Tag
+
+
+class peers_gui():   # Логика и форма
+
+    def __init__(self):
+        self.cursorpos = []   # Координаты курсора
+        self.presspos = []   # Координаты нажатия мыши
+        self.releasepos = []   # Координаты отпускания мыши
+        self.flagpressbutton = False   # Флаг нажатия мыши
+        self.flagactivescroll = True   # Флаг прокрутки (защита от многократной прокрутки)
+        def mouse_wheel(event):
+            if event.num == 5 or event.delta == -120:
+                if self.flagactivescroll:
+                    self.flagactivescroll = False
+                    flaginout = False   # Приближение/отдаление
+                    self.zoom(flaginout)
+                    self.canvas.delete('tt')
+                    self.canvas.create_oval((5-self.startxnow)*self.pxinX-int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (5-self.startynow)*self.pxinY-int(50*10/(self.maxynow-self.startynow)),
+                                            (5-self.startxnow)*self.pxinX+int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (5-self.startynow)*self.pxinY+int(50*10/(self.maxynow-self.startynow)), tag='tt')
+                    self.canvas.create_oval((-5-self.startxnow)*self.pxinX-int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (-5-self.startynow)*self.pxinY-int(50*10/(self.maxynow-self.startynow)),
+                                            (-5-self.startxnow)*self.pxinX+int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (-5-self.startynow)*self.pxinY+int(50*10/(self.maxynow-self.startynow)), tag='tt')
+                    self.canvas.create_oval((50-self.startxnow)*self.pxinX-int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (50-self.startynow)*self.pxinY-int(50*10/(self.maxynow-self.startynow)),
+                                            (50-self.startxnow)*self.pxinX+int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (50-self.startynow)*self.pxinY+int(50*10/(self.maxynow-self.startynow)), tag='tt')
+                    self.canvas.create_oval((1000-self.startxnow)*self.pxinX-int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (1000-self.startynow)*self.pxinY-int(50*10/(self.maxynow-self.startynow)),
+                                            (1000-self.startxnow)*self.pxinX+int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (1000-self.startynow)*self.pxinY+int(50*10/(self.maxynow-self.startynow)), tag='tt')
+                    self.flagactivescroll = True
+            if event.num == 4 or event.delta == 120:
+                if self.flagactivescroll:
+                    self.flagactivescroll = False
+                    flaginout = True
+                    self.zoom(flaginout)
+                    self.canvas.delete('tt')
+                    self.canvas.create_oval((5-self.startxnow)*self.pxinX-int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (5-self.startynow)*self.pxinY-int(50*10/(self.maxynow-self.startynow)),
+                                            (5-self.startxnow)*self.pxinX+int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (5-self.startynow)*self.pxinY+int(50*10/(self.maxynow-self.startynow)), tag='tt')
+                    self.canvas.create_oval((-5-self.startxnow)*self.pxinX-int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (-5-self.startynow)*self.pxinY-int(50*10/(self.maxynow-self.startynow)),
+                                            (-5-self.startxnow)*self.pxinX+int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (-5-self.startynow)*self.pxinY+int(50*10/(self.maxynow-self.startynow)), tag='tt')
+                    self.canvas.create_oval((50-self.startxnow)*self.pxinX-int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (50-self.startynow)*self.pxinY-int(50*10/(self.maxynow-self.startynow)),
+                                            (50-self.startxnow)*self.pxinX+int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (50-self.startynow)*self.pxinY+int(50*10/(self.maxynow-self.startynow)), tag='tt')
+                    self.canvas.create_oval((1000-self.startxnow)*self.pxinX-int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (1000-self.startynow)*self.pxinY-int(50*10/(self.maxynow-self.startynow)),
+                                            (1000-self.startxnow)*self.pxinX+int(50*10/(self.maxxnow-self.startxnow)),
+                                            self.canvas.winfo_height() - (1000-self.startynow)*self.pxinY+int(50*10/(self.maxynow-self.startynow)), tag='tt')
+                    self.flagactivescroll = True
+
+        def Mousecoords(event):   # Координаты курсора
+            pointxy = (event.x, self.canvas.winfo_height()-event.y)
+            self.cursorpos = list(pointxy)
+            if self.flagpressbutton:
+                self.carryhand()
+
+        def butpress(event):   # Нажатие мыши
+            pointxy = (event.x, self.canvas.winfo_height() - event.y)
+            self.presspos = list(pointxy)
+            self.flagpressbutton = True
+            for i in range(20):  # Очитска старой градуировки
+                self.labelmas[i]["text"] = " "
+                self.labelmas[i].place(x=1000000, y=1000000)
+                self.label0x.place(x=1000000, y=1000000)
+                self.label0y.place(x=1000000, y=1000000)
+                self.label1x.place(x=1000000, y=1000000)
+                self.label1y.place(x=1000000, y=1000000)
+
+        def butrelease(event):   # Отпускание мыши
+            pointxy = (event.x, self.canvas.winfo_height() - event.y)
+            self.releasepos = list(pointxy)
+            self.flagpressbutton = False
+            self.carryhand()
+
+        self.tk = Tk()   # Форма
+        self.WIDTHSCREEN = self.tk.winfo_screenwidth()   # Ширина монитора
+        self.HEIGHTSCREEN = self.tk.winfo_screenheight()   # Высота монитора
+        self.tk.overrideredirect(True)   # Рамка
+        self.web_message_buffer =[]    # Название окна
+        self.tk.minsize(width=int(self.WIDTHSCREEN / 2), height=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3))
+        self.tk.maxsize(width=int(self.WIDTHSCREEN / 2), height=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3))
+        self.tk.wm_geometry(
+            "+%d+%d" % (int(self.WIDTHSCREEN / 2 - self.WIDTHSCREEN / 4),
+                        int(self.HEIGHTSCREEN / 2 - (self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) / 2)))
+        self.tk["bg"] = "light grey"
+
+        self.canvas = Canvas(self.tk, bg='white')
+        self.canvas.pack()
+        self.canvas.place(x=150, y=55, width=int(self.WIDTHSCREEN / 2 - 280), height=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3)-250)
+
+        self.labelx = Label(text="X", bg='light grey')   # Размер OX
+        self.labely = Label(text="Y", bg='light grey')   # Размер OY
+        self.labelx.pack()
+        self.labely.pack()
+        self.labelx.place(x=5, y=55)
+        self.labely.place(x=5, y=90)
+        self.labelx.update()
+        self.labely.update()
+
+        self.x = StringVar()
+        self.y = StringVar()
+
+        self.entryWIDTH = Entry(textvariable=self.x)   # Поле воода X
+        self.entryWIDTH.pack()
+        self.entryWIDTH.place(x=5 + self.labelx.winfo_width() + 3, y=55, width=60, height=30)
+        self.entryHEIGHT = Entry(textvariable=self.y)    # Поле воода Y
+        self.entryHEIGHT.pack()
+        self.entryHEIGHT.place(x=5 + self.labely.winfo_width() + 3, y=90, width=60, height=30)
+
+        self.listcoords = Listbox(self.tk, bd=3, font=("Arial", 11))   # Табло названий и координат меток
+        self.listcoords.pack()
+        self.listcoords.place(x=150, y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3)-160,
+                              width=self.canvas.winfo_width()-250, height=150)
+        self.listcoords.update()
+
+        self.listcolors = Listbox(self.tk, bd=3, font=("Arial", 11))   # Табло цветов меток
+        self.listcolors.pack()
+        self.listcolors.place(x=150+self.listcoords.winfo_width()+5, y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3)-160,
+                              width=245, height=150)
+        self.listcolors.update()
+
+        self.labelmas = []   # Градуировка осей
+
+        for i in range(20):
+            self.labelmas.append(Label)
+        for i in range(20):
+            self.labelmas[i] = Label(text=str(" "), bg='light grey', font=("Arial", 8))
+            self.labelmas[i].pack()
+            self.labelmas[i].place(x=1000000, y=1000000)
+        self.label0x = Label(text=" ", bg='light grey', font=("Arial", 8))   # Начальное значение оси OX
+        self.label0x.pack()
+        self.label0x.place(x=1000000, y=1000000)
+        self.label0y = Label(text=" ", bg='light grey', font=("Arial", 8))   # Начальное значение оси OY
+        self.label0y.pack()
+        self.label0y.place(x=1000000, y=1000000)
+        self.label1x = Label(text=" ", bg='light grey', font=("Arial", 8))   # Конечное значение оси OX
+        self.label1x.pack()
+        self.label1x.place(x=1000000, y=1000000)
+        self.label1y = Label(text=" ", bg='light grey', font=("Arial", 8))   # Конечное значение оси OY
+        self.label1y.pack()
+        self.label1y.place(x=1000000, y=1000000)
+
+        self.pxinX = 1   # Пикселей в 1 метре OX
+        self.pxinY = 1   # Пикселей в 1 метре OY
+        self.WIDTHx = 1   # Ширина оси OX
+        self.HEIGHTy = 1   # Высота оси OY
+
+        self.butstart = Button(text='START', bg='silver', command=self.start, bd=4, font=("Arial", 9))   # Кнопка START
+        self.butstart.pack()
+        self.butstart.place(x=5, y=5, width=60, height=30)
+
+        self.butcreate = Button(text='CREATE', bg='silver', command=self.create, bd=4, font=("Arial", 9))   # Кнопка CREATE
+        self.butcreate.pack()
+        self.butcreate.place(x=5, y=130, width=65, height=30)
+        self.butstart["state"] = "disabled"
+
+        self.butclose = Button(text='×', bg='red', command=self.close, bd=2, font=("Arial", 20))   # Кнопка закрытия программы
+        self.butclose.pack()
+        self.butclose.place(x=int(self.WIDTHSCREEN / 2 - 30), y=5, width=25, height=25)
+
+        self.tags = []   # Массив меток
+        self.tagcolor = " "   # Цвет метки
+
+        # Кнопки выбора цвета для меток
+        self.butblack = Button(text='', bg='black', command=lambda: self.setcolor("black"), bd=1)
+        self.butgreen = Button(text='', bg='green', command=lambda: self.setcolor("green"), bd=1)
+        self.butyellow = Button(text='', bg='yellow', command=lambda: self.setcolor("yellow"), bd=1)
+        self.butblue = Button(text='', bg='blue', command=lambda: self.setcolor("blue"), bd=1)
+        self.butorange = Button(text='', bg='orange', command=lambda: self.setcolor("orange"), bd=1)
+        self.butred = Button(text='', bg='red', command=lambda: self.setcolor("red"), bd=1)
+        self.butblack.pack()
+        self.butgreen.pack()
+        self.butyellow.pack()
+        self.butblue.pack()
+        self.butorange.pack()
+        self.butred.pack()
+        self.butblack.place(x=150 + self.canvas.winfo_width() + 5,
+                            y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 90, width=0, height=0)
+        self.butgreen.place(x=150 + self.canvas.winfo_width() + 5,
+                            y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 15, width=0, height=0)
+        self.butyellow.place(x=150 + self.canvas.winfo_width() + 5,
+                             y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 30, width=0, height=0)
+        self.butblue.place(x=150 + self.canvas.winfo_width() + 5,
+                           y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 45, width=0, height=0)
+        self.butorange.place(x=150 + self.canvas.winfo_width() + 5,
+                             y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 60, width=0, height=0)
+        self.butred.place(x=150 + self.canvas.winfo_width() + 5,
+                          y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 75, width=0, height=0)
+
+        self.canvas.bind("<MouseWheel>", mouse_wheel)   # Прокручивание колесика на канвасе
+        self.canvas.bind('<Motion>', Mousecoords)   # Отслеживание координат курсора на канвасе
+        self.canvas.bind('<ButtonPress>', butpress)   # Отслеживание нажатия мыши
+        self.canvas.bind('<ButtonRelease>', butrelease)  # Отслеживание отпускания мыши
+        self.updateflag = 0   # Флаг обновления меток
+        self.checkfloatWIDTH = False   # Проверка на правильность ввода ширины
+        self.checkfloatHEIGHT = False   # Проверка на правильность ввода высоты
+        self.startxnow = 0   # Начальное значение оси OX в данный момент
+        self.startynow = 0   # Начальное значение оси OY в данный момент
+        self.maxxnow = 0   # Конечное значение оси OX в данный момент
+        self.maxynow = 0   # Конечное значение оси OY в данный момент
+
+    def carryhand(self):
+        deltastepx = self.cursorpos[0] - self.presspos[0]
+        deltastepy = self.cursorpos[1] - self.presspos[1]
+        self.presspos[0] = self.cursorpos[0]
+        self.presspos[1] = self.cursorpos[1]
+        deltastepx = deltastepx / self.pxinX
+        deltastepy = deltastepy / self.pxinY
+        self.startxnow = self.startxnow - deltastepx
+        self.startynow = self.startynow - deltastepy
+        self.maxxnow = self.maxxnow - deltastepx
+        self.maxynow = self.maxynow - deltastepy
+
+        self.canvas.delete('tt')
+        self.canvas.create_oval((5 - self.startxnow) * self.pxinX - int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (5 - self.startynow) * self.pxinY - int(
+                                    50 * 10 / (self.maxynow - self.startynow)),
+                                (5 - self.startxnow) * self.pxinX + int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (5 - self.startynow) * self.pxinY + int(
+                                    50 * 10 / (self.maxynow - self.startynow)), tag='tt')
+        self.canvas.create_oval((-5 - self.startxnow) * self.pxinX - int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (-5 - self.startynow) * self.pxinY - int(
+                                    50 * 10 / (self.maxynow - self.startynow)),
+                                (-5 - self.startxnow) * self.pxinX + int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (-5 - self.startynow) * self.pxinY + int(
+                                    50 * 10 / (self.maxynow - self.startynow)), tag='tt')
+        self.canvas.create_oval((50 - self.startxnow) * self.pxinX - int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (50 - self.startynow) * self.pxinY - int(
+                                    50 * 10 / (self.maxynow - self.startynow)),
+                                (50 - self.startxnow) * self.pxinX + int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (50 - self.startynow) * self.pxinY + int(
+                                    50 * 10 / (self.maxynow - self.startynow)), tag='tt')
+        self.canvas.create_oval((1000 - self.startxnow) * self.pxinX - int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (1000 - self.startynow) * self.pxinY - int(
+                                    50 * 10 / (self.maxynow - self.startynow)),
+                                (1000 - self.startxnow) * self.pxinX + int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (1000 - self.startynow) * self.pxinY + int(
+                                    50 * 10 / (self.maxynow - self.startynow)), tag='tt')
+
+        self.canvas.delete('grid')   # Очитка старой сетки
+
+        self.marking()
+
+    def zoom(self, flaginout):
+        self.canvas.delete('grid')   # Очитка старой сетки
+        for i in range(20):   # Очитска старой градуировки
+            self.labelmas[i]["text"] = " "
+            self.labelmas[i].place(x=1000000, y=1000000)
+
+        coordcursX = float(self.cursorpos[0] / self.pxinX) + self.startxnow
+        coordcursY = float(self.cursorpos[1] / self.pxinY) + self.startynow
+
+        if flaginout:
+            self.zoomin(coordcursX, coordcursY)   # Приближение
+        else:
+            self.zoomout(coordcursX, coordcursY)   # Отдаление
+
+    def zoomin(self, coordcursX, coordcursY):   # Приближение
+        newwidth = float((self.maxxnow - self.startxnow) * 0.9)   # Новая метрическая ширина
+        newheight = float((self.maxynow - self.startynow) * 0.9)   # Новая метрическая высота
+        self.pxinX = float(self.canvas.winfo_width() / newwidth)   # Новое значеие пикселей на ширину
+        self.pxinY = float(self.canvas.winfo_height() / newheight)   # Новое значение пикселей на высоту
+        self.startxnow = coordcursX - float(self.cursorpos[0] / self.pxinX)   # Новое минимальое значение OX
+        self.startynow = coordcursY - float(self.cursorpos[1] / self.pxinY)   # Новое минимальное значение OY
+        self.maxxnow = self.startxnow + newwidth   # Новое максимальное значение OX
+        self.maxynow = self.startynow + newheight   # Новое максимальное значение OY
+        self.marking()
+
+    def zoomout(self, coordcursX, coordcursY):   # Отдаление
+        newwidth = float((self.maxxnow - self.startxnow) * 1.1)
+        newheight = float((self.maxynow - self.startynow) * 1.1)
+        self.pxinX = float(self.canvas.winfo_width() / newwidth)
+        self.pxinY = float(self.canvas.winfo_height() / newheight)
+        self.startxnow = coordcursX - float(self.cursorpos[0] / self.pxinX)
+        self.startynow = coordcursY - float(self.cursorpos[1] / self.pxinY)
+        self.maxxnow = self.startxnow + newwidth
+        self.maxynow = self.startynow + newheight
+        self.marking()
+
+
+    def setcolor(self, color):   # Выбор цвета метки
+        self.tagcolor = color
+        self.tags[self.select[0]].color = self.tagcolor
+        self.select = []
+        self.listcolors.select_clear(0, 'end')
+        # Скрытие панели выбора цвета
+        self.butblack.place(x=150 + self.canvas.winfo_width() + 5,
+                            y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 90, width=0, height=0)
+        self.butgreen.place(x=150 + self.canvas.winfo_width() + 5,
+                            y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 15, width=0, height=0)
+        self.butyellow.place(x=150 + self.canvas.winfo_width() + 5,
+                             y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 30, width=0, height=0)
+        self.butblue.place(x=150 + self.canvas.winfo_width() + 5,
+                           y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 45, width=0, height=0)
+        self.butorange.place(x=150 + self.canvas.winfo_width() + 5,
+                             y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 60, width=0, height=0)
+        self.butred.place(x=150 + self.canvas.winfo_width() + 5,
+                          y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 75, width=0, height=0)
+
+    def isFloat(self, value):   # Проверка правильности ввода
+        try:
+            float(value)
+            return True
+        except ValueError:
+            return False
+
+    def create(self):   # Кнопка CREATE
+        self.WIDTHx = self.x.get()   # Запись значени из поля ввода ширины
+        self.HEIGHTy = self.y.get()   # Запись значения из поля ввода высота
+        self.checkfloatWIDTH = self.isFloat(self.WIDTHx)   # Проверка на правильность ввода ширины
+        self.checkfloatHEIGHT = self.isFloat(self.HEIGHTy)   # Проверка на привильность ввода высоты
+        if self.checkfloatWIDTH:
+            self.WIDTHx = float(self.x.get())
+            self.maxxnow = self.WIDTHx
+            self.startxnow = 0
+        if self.checkfloatHEIGHT:
+            self.HEIGHTy = float(self.y.get())
+            self.maxynow = self.HEIGHTy
+            self.startynow = 0
+        if (self.checkfloatHEIGHT and self.checkfloatWIDTH):
+            self.pxinX = float(self.canvas.winfo_width() / self.WIDTHx)
+            self.pxinY = float(self.canvas.winfo_height() / self.HEIGHTy)
+            self.marking()   # Сетка и градуировка
+            self.butstart["state"] = "active"   # Активация кнопки START
+        else:
+            msg = "Error input"   # Сообщение об ошибке ввода
+            message.showerror("Error", msg)
+        self.canvas.create_oval((5 - self.startxnow) * self.pxinX - int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (5 - self.startynow) * self.pxinY - int(
+                                    50 * 10 / (self.maxynow - self.startynow)),
+                                (5 - self.startxnow) * self.pxinX + int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (5 - self.startynow) * self.pxinY + int(
+                                    50 * 10 / (self.maxynow - self.startynow)), tag='tt')
+        self.canvas.create_oval((-5 - self.startxnow) * self.pxinX - int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (-5 - self.startynow) * self.pxinY - int(
+                                    50 * 10 / (self.maxynow - self.startynow)),
+                                (-5 - self.startxnow) * self.pxinX + int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (-5 - self.startynow) * self.pxinY + int(
+                                    50 * 10 / (self.maxynow - self.startynow)), tag='tt')
+        self.canvas.create_oval((50 - self.startxnow) * self.pxinX - int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (50 - self.startynow) * self.pxinY - int(
+                                    50 * 10 / (self.maxynow - self.startynow)),
+                                (50 - self.startxnow) * self.pxinX + int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (50 - self.startynow) * self.pxinY + int(
+                                    50 * 10 / (self.maxynow - self.startynow)), tag='tt')
+        self.canvas.create_oval((1000 - self.startxnow) * self.pxinX - int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (1000 - self.startynow) * self.pxinY - int(
+                                    50 * 10 / (self.maxynow - self.startynow)),
+                                (1000 - self.startxnow) * self.pxinX + int(50 * 10 / (self.maxxnow - self.startxnow)),
+                                self.canvas.winfo_height() - (1000 - self.startynow) * self.pxinY + int(
+                                    50 * 10 / (self.maxynow - self.startynow)), tag='tt')
+
+    def marking(self):   # Сетка и градуировка
+        minuslinesx = 0  # Количество линий < 0 по оси OX
+        minuslinesy = 0  # Количество линий < 0 по оси OY
+        pluslinesx = 0  # Количество линий > 0 по оси OX
+        pluslinesy = 0  # Количество линий > 0 по оси OY
+        labellinesx = []  # Массив градуировки по оси OX
+        labellinesy = []  # Массив градуировки по оси OY
+        longlabellinesx = []  # Массив градуировки по оси OX при большом отдалении
+        longlabellinesy = []  # Массив градуировки по оси OY при большом отдалении
+
+        if (self.startxnow <= 0) and (self.maxxnow > 0):
+            minuslinesx = -math.floor(self.startxnow / (self.WIDTHx / 10))
+            pluslinesx = math.floor(self.maxxnow / (self.WIDTHx / 10))
+            for i in range(minuslinesx + 1):
+                if (-i * (self.WIDTHx / 10) > self.startxnow) and ((-i * (self.WIDTHx / 10)) < self.maxxnow):
+                    labellinesx.insert(0, -i)
+            for i in range(pluslinesx + 1):
+                if (i * (self.WIDTHx / 10) > self.startxnow) and ((i * (self.WIDTHx / 10)) < self.maxxnow):
+                    labellinesx.append(i)
+
+        elif (self.startxnow < 0) and (self.maxxnow <= 0):
+            minuslinesx = -math.floor(self.startxnow / (self.WIDTHx / 10))
+            for i in range(minuslinesx + 1):
+                if (-i * (self.WIDTHx / 10) > self.startxnow) and ((-i * (self.WIDTHx / 10)) < self.maxxnow):
+                    labellinesx.insert(0, -i)
+
+        elif (self.startxnow >= 0) and (self.maxxnow > 0):
+            pluslinesx = math.floor(self.maxxnow / (self.WIDTHx / 10))
+            for i in range(pluslinesx + 1):
+                if (i * (self.WIDTHx / 10) > self.startxnow) and ((i * (self.WIDTHx / 10)) < self.maxxnow):
+                    labellinesx.append(i)
+
+        if (self.startynow <= 0) and (self.maxynow > 0):
+            minuslinesy = -math.floor(self.startynow / (self.HEIGHTy / 10))
+            pluslinesy = math.floor(self.maxynow / (self.HEIGHTy / 10))
+            for i in range(minuslinesy + 1):
+                if (-i * (self.HEIGHTy / 10) > self.startynow) and ((-i * (self.HEIGHTy / 10)) < self.maxynow):
+                    labellinesy.insert(0, -i)
+            for i in range(pluslinesy + 1):
+                if (i * (self.HEIGHTy / 10) > self.startynow) and ((i * (self.HEIGHTy / 10)) < self.maxynow):
+                    labellinesy.append(i)
+
+        elif (self.startynow < 0) and (self.maxynow <= 0):
+            minuslinesy = -math.floor(self.startynow / (self.HEIGHTy / 10))
+            for i in range(minuslinesy + 1):
+                if (-i * (self.HEIGHTy / 10) > self.startynow) and ((-i * (self.HEIGHTy / 10)) < self.maxynow):
+                    labellinesy.insert(0, -i)
+
+        elif (self.startynow >= 0) and (self.maxynow > 0):
+            pluslinesy = math.floor(self.maxynow / (self.HEIGHTy / 10))
+            for i in range(pluslinesy + 1):
+                if (i * (self.HEIGHTy / 10) > self.startynow) and ((i * (self.HEIGHTy / 10)) < self.maxynow):
+                    labellinesy.append(i)
+
+        self.canvas.create_line(0, self.canvas.winfo_height() -  # Ось OY
+                                int(((0 * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY),
+                                int(self.canvas.winfo_width()), self.canvas.winfo_height() -
+                                int(((0 * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY), width=3,
+                                fill="black", tag='grid')
+        self.canvas.create_line(int(((0 * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX), 0,  # Ось OX
+                                int(((0 * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX),
+                                self.canvas.winfo_height(),
+                                width=3, fill="black", tag='grid')
+        for i in range(pluslinesx):  # Ось OX > 0
+            self.canvas.create_line(int((((i + 1) * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX),
+                                    self.canvas.winfo_height() - 10,  # Насечки оси OX
+                                    int((((i + 1) * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX),
+                                    self.canvas.winfo_height(), width=2, tag='grid')
+            self.canvas.create_line(int((((i + 1) * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX), 0,
+                                    # Сетка оси OX
+                                    int((((i + 1) * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX),
+                                    self.canvas.winfo_height(),
+                                    width=1, fill="light grey", tag='grid')
+        for i in range(minuslinesx):  # Ось OX < 0
+            self.canvas.create_line(int(((-(i + 1) * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX),
+                                    self.canvas.winfo_height() - 10,  # Насечки оси OX
+                                    int(((-(i + 1) * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX),
+                                    self.canvas.winfo_height(), width=2, tag='grid')
+            self.canvas.create_line(int(((-(i + 1) * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX), 0,
+                                    # Сетка оси OX
+                                    int(((-(i + 1) * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX),
+                                    self.canvas.winfo_height(),
+                                    width=1, fill="light grey", tag='grid')
+        for i in range(pluslinesy):  # Ось OY > 0
+            self.canvas.create_line(0, self.canvas.winfo_height() - int(
+                (((i + 1) * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY),  # Насечки оси OY
+                                    10, self.canvas.winfo_height() - int(
+                    (((i + 1) * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY), width=2, tag='grid')
+            self.canvas.create_line(0, self.canvas.winfo_height() - int(
+                (((i + 1) * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY),  # Сетка оси OY
+                                    int(self.canvas.winfo_width()), self.canvas.winfo_height() -
+                                    int((((i + 1) * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY), width=1,
+                                    fill="light grey", tag='grid')
+        for i in range(minuslinesy):  # Ось OY < 0
+            self.canvas.create_line(0, self.canvas.winfo_height() - int(
+                ((-(i + 1) * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY),  # Насечки оси OY
+                                    10, self.canvas.winfo_height() - int(
+                    ((-(i + 1) * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY), width=2, tag='grid')
+            self.canvas.create_line(0, self.canvas.winfo_height() - int(
+                ((-(i + 1) * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY),  # Сетка оси OY
+                                    int(self.canvas.winfo_width()), self.canvas.winfo_height() -
+                                    int(((-(i + 1) * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY), width=1,
+                                    fill="light grey", tag='grid')
+
+        flagmaxx = False  # Заезд градуировки на максимум OX
+        flagmaxy = False  # Заезд градуировки на максимум OY
+        flagminx = False  # Заезд градуировки на минимум OX
+        flagminy = False  # Заезд градуировки на минимум OY
+        if self.flagpressbutton == False:
+            if len(labellinesx) < 10:
+                for i in range(len(labellinesx)):  # Градуировка оси OX
+                    self.labelmas[i]["text"] = str(round(float(labellinesx[i] * (self.WIDTHx / 10)), 2))
+                    self.labelmas[i].update()
+                    if (150 + self.labelmas[i].winfo_width() + int(
+                            ((labellinesx[i] * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX) -
+                        int(self.labelmas[i].winfo_width() / 2)) > (
+                            150 + self.canvas.winfo_width() - ((self.WIDTHx / 10) * self.pxinX) / 2):
+                        self.label1x.place(x=1000000, y=1000000)
+                        flagmaxx = True
+                    if (150 + int(((labellinesx[i] * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX) -
+                        int(self.labelmas[i].winfo_width() / 2)) < 150 + ((self.WIDTHx / 10) * self.pxinX) / 2:
+                        self.label0x.place(x=1000000, y=1000000)
+                        flagminx = True
+                    if (150 + int(((labellinesx[i] * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX) - int(
+                            self.labelmas[i].winfo_width() / 2)) < 150:
+                        self.labelmas[i].place(
+                            x=150,
+                            y=55 + self.canvas.winfo_height())
+                    else:
+                        self.labelmas[i].place(
+                            x=150 + int(((labellinesx[i] * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX) - int(
+                                self.labelmas[i].winfo_width() / 2),
+                            y=55 + self.canvas.winfo_height())
+
+            if len(labellinesy) < 10:
+                for i in range(len(labellinesy)):  # Градуировка оси OY
+                    self.labelmas[i + len(labellinesx)]["text"] = str(round(float(labellinesy[i] * (self.HEIGHTy / 10)), 2))
+                    self.labelmas[i + len(labellinesx)].update()
+                    if (55 + self.canvas.winfo_height() - int(self.labelmas[i + len(labellinesx)].winfo_height() / 2) -
+                        int(((labellinesy[i] * (self.HEIGHTy / 10)) -
+                             self.startynow) * self.pxinY)) + self.labelmas[i + len(labellinesx)].winfo_height() > (
+                            55 + self.canvas.winfo_height() - ((self.HEIGHTy / 10) * self.pxinY) / 2):
+                        self.label0y.place(x=1000000, y=1000000)
+                        flagminy = True
+                    if (55 + self.canvas.winfo_height() - int(self.labelmas[i + len(labellinesx)].winfo_height() / 2) -
+                        int(((labellinesy[i] * (self.HEIGHTy / 10)) -
+                             self.startynow) * self.pxinY)) < (55 + ((self.HEIGHTy / 10) * self.pxinY)) / 2:
+                        self.label1y.place(x=1000000, y=1000000)
+                        flagmaxy = True
+                    if (55 + self.canvas.winfo_height() - int(
+                            self.labelmas[i + len(labellinesx)].winfo_height() / 2) -
+                        int(((labellinesy[i] * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY)) + self.labelmas[
+                        i + len(labellinesx)].winfo_height() > (55 + self.canvas.winfo_height()):
+                        self.labelmas[i + len(labellinesx)].place(
+                            x=150 - int(self.labelmas[i + len(labellinesx)].winfo_width()),
+                            y=55 + self.canvas.winfo_height() - self.labelmas[i + len(labellinesx)].winfo_height())
+                    else:
+                        self.labelmas[i + len(labellinesx)].place(
+                            x=150 - int(self.labelmas[i + len(labellinesx)].winfo_width()),
+                            y=55 + self.canvas.winfo_height() - int(
+                                self.labelmas[i + len(labellinesx)].winfo_height() / 2) -
+                              int(((labellinesy[i] * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY))
+
+            if len(labellinesx) >= 10:
+                step = math.ceil(len(labellinesx) / 10)
+                for i in range(len(labellinesx)):
+                    if i % step == 0:
+                        longlabellinesx.append(labellinesx[i])
+                for i in range(len(longlabellinesx)):  # Градуировка оси OX
+                    self.labelmas[i]["text"] = str(round(float(longlabellinesx[i] * (self.WIDTHx / 10)), 2))
+                    self.labelmas[i].update()
+                    if (150 + self.labelmas[i].winfo_width() + int(
+                            ((longlabellinesx[i] * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX) -
+                        int(self.labelmas[i].winfo_width() / 2)) > (
+                            150 + self.canvas.winfo_width() - ((self.WIDTHx / 10) * self.pxinX)) / 2:
+                        self.label1x.place(x=1000000, y=1000000)
+                        flagmaxx = True
+                    if (150 + int(((longlabellinesx[i] * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX) -
+                        int(self.labelmas[i].winfo_width() / 2)) < 150 + ((self.WIDTHx / 10) * self.pxinX) / 2:
+                        self.label0x.place(x=1000000, y=1000000)
+                        flagminx = True
+                    if (150 + int(((longlabellinesx[i] * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX) - int(
+                            self.labelmas[i].winfo_width() / 2)) < 150:
+                        self.labelmas[i].place(
+                            x=150,
+                            y=55 + self.canvas.winfo_height())
+                    else:
+                        self.labelmas[i].place(
+                            x=150 + int(((longlabellinesx[i] * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX) - int(
+                                self.labelmas[i].winfo_width() / 2),
+                            y=55 + self.canvas.winfo_height())
+
+            if len(labellinesy) >= 10:
+                step = math.ceil(len(labellinesy) / 10)
+                for i in range(len(labellinesy)):
+                    if i % step == 0:
+                        longlabellinesy.append(labellinesy[i])
+                for i in range(len(longlabellinesy)):  # Градуировка оси OY
+                    self.labelmas[i + len(longlabellinesx)]["text"] = str(
+                        round(float(longlabellinesy[i] * (self.HEIGHTy / 10)), 2))
+                    self.labelmas[i + len(longlabellinesx)].update()
+                    if (55 + self.canvas.winfo_height() - int(self.labelmas[i + len(longlabellinesx)].winfo_height() / 2) -
+                        int(((longlabellinesy[i] * (self.HEIGHTy / 10)) -
+                             self.startynow) * self.pxinY)) + self.labelmas[i + len(longlabellinesx)].winfo_height() > (
+                            55 + self.canvas.winfo_height() - ((self.HEIGHTy / 10) * self.pxinY) / 2):
+                        self.label0y.place(x=1000000, y=1000000)
+                        flagminy = True
+                    if (55 + self.canvas.winfo_height() - int(self.labelmas[i + len(longlabellinesx)].winfo_height() / 2) -
+                        int(((longlabellinesy[i] * (self.HEIGHTy / 10)) -
+                             self.startynow) * self.pxinY)) < (55 + ((self.HEIGHTy / 10) * self.pxinY) / 2):
+                        self.label1y.place(x=1000000, y=1000000)
+                        flagmaxy = True
+                    if (55 + self.canvas.winfo_height() - int(
+                            self.labelmas[i + len(longlabellinesx)].winfo_height() / 2) -
+                        int(((longlabellinesy[i] * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY)) + self.labelmas[
+                        i + len(longlabellinesx)].winfo_height() > (55 + self.canvas.winfo_height()):
+                        self.labelmas[i + len(longlabellinesx)].place(
+                            x=150 - int(self.labelmas[i + len(longlabellinesx)].winfo_width()),
+                            y=55 + self.canvas.winfo_height() - self.labelmas[i + len(longlabellinesx)].winfo_height())
+                    else:
+                        self.labelmas[i + len(longlabellinesx)].place(
+                            x=150 - int(self.labelmas[i + len(longlabellinesx)].winfo_width()),
+                            y=55 + self.canvas.winfo_height() - int(
+                                self.labelmas[i + len(longlabellinesx)].winfo_height() / 2) -
+                              int(((longlabellinesy[i] * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY))
+
+            if flagminx == False:
+                self.label0x['text'] = str(round(self.startxnow, 2))  # Начальное значение ширины
+                self.label0x.update()
+                self.label0x.place(x=150, y=55 + self.canvas.winfo_height())
+            if flagminy == False:
+                self.label0y['text'] = str(round(self.startynow, 2))  # Начальное значение высоты
+                self.label0y.update()
+                self.label0y.place(x=150 - int(self.label0y.winfo_width()),
+                                   y=55 + self.canvas.winfo_height() - self.label0y.winfo_height())
+            if flagmaxx == False:
+                self.label1x['text'] = str(round(self.maxxnow, 2))  # Начальное значение ширины
+                self.label1x.update()
+                self.label1x.place(x=150 + self.canvas.winfo_width(), y=55 + self.canvas.winfo_height())
+            if flagmaxy == False:
+                self.label1y['text'] = str(round(self.maxynow, 2))  # Начальное значение высоты
+                self.label1y.update()
+                self.label1y.place(x=150 - int(self.label1y.winfo_width()),
+                                   y=55 - self.label1y.winfo_height())
+
+    def drawframe(self, line):   # Обработка логов (логика меток)
+        data = line.split()   # Разбиение строки на составляющие
+        ID = data[0]   # Название метки
+        match_flag = 0
+        self.updateflag += 1
+        if self.updateflag > 10:   # Обновление меток
+            for tag in self.tags:
+                tag.drawme(self.canvas, self.listcoords, self.pxinX, self.pxinY, self.tags, self.startxnow, self.startynow,
+                           self.maxxnow, self.maxynow)
+            self.updateflag = 0   # Флаг новая/старая метка
+
+        for tag in self.tags:
+            if tag.check(data):
+                # Выбор цвета метки
+                self.select = list(self.listcolors.curselection())
+                if len(self.select) != 0:
+                    self.butblack.place(x=150 + self.canvas.winfo_width() + 5,
+                                        y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 150, width=30, height=20)
+                    self.butgreen.place(x=150 + self.canvas.winfo_width() + 5,
+                                        y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 25, width=30, height=20)
+                    self.butyellow.place(x=150 + self.canvas.winfo_width() + 5,
+                                         y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 50, width=30,
+                                         height=20)
+                    self.butblue.place(x=150 + self.canvas.winfo_width() + 5,
+                                       y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 75, width=30, height=20)
+                    self.butorange.place(x=150 + self.canvas.winfo_width() + 5,
+                                         y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 100, width=30,
+                                         height=20)
+                    self.butred.place(x=150 + self.canvas.winfo_width() + 5,
+                                      y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 125, width=30, height=20)
+                tag.update(data, self.tagcolor, self.listcolors, self.tags)   # Обновление метки
+                self.tagcolor = " "
+                tag.drawme(self.canvas, self.listcoords, self.pxinX, self.pxinY, self.tags, self.startxnow, self.startynow,
+                           self.maxxnow, self.maxynow)   # Прорисовка метки
+                match_flag = 1
+
+        if match_flag == 0:
+            tag = Tag(data, self.listcolors)
+            print("NEW TAG")
+            self.tags.append(tag)   # Добавление метки
+            tag.drawme(self.canvas, self.listcoords, self.pxinX, self.pxinY, self.tags, self.startxnow, self.startynow,
+                       self.maxxnow, self.maxynow)   #Прорисовка метки
+
+    def start(self):   # Кнопка START
+        filename = fd.askopenfilename()   # Диалоговое окно при чтении из файла
+        f = open(filename, 'r')
+        while True:
+            line = f.readline()   # Чтение по строкам
+            if not line:
+                break
+            else:
+                self.drawframe(line)
+                time.sleep(0.05)
+        # while True:   #Получение данных с сервера
+        #     current_message = ""
+        #     if len(self.web_message_buffer) > 0:
+        #         current_message = self.web_message_buffer.pop()
+        #         print(current_message)
+        #         self.drawframe(current_message)
+
+    def close(self):   # Кнопка закрытия программы
+        self.tk.destroy()
+
+a=peers_gui()
+a.tk.mainloop()

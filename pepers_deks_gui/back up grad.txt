@@ -1,0 +1,37 @@
+  if len(labellinesx) < 10:
+            for i in range(len(labellinesx)):  # Градуировка оси OX
+                self.labelmas[i]["text"] = str(round(float(labellinesx[i] * (self.WIDTHx / 10)), 2))
+                self.labelmas[i].update()
+                self.labelmas[i].place(
+                    x=150 + int(((labellinesx[i] * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX) - int(self.labelmas[i].winfo_width() / 2),
+                    y=55 + self.canvas.winfo_height())
+                if (150 + self.labelmas[i].winfo_width() + int(((labellinesx[i] * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX) -
+                    int(self.labelmas[i].winfo_width() / 2)) > (150 + self.canvas.winfo_width()):
+                    self.labelmas[i].place(
+                        x=150 + self.canvas.winfo_width() - self.labelmas[i].winfo_width(),
+                        y=55 + self.canvas.winfo_height())
+                if (150 + int(((labellinesx[i] * (self.WIDTHx / 10)) - self.startxnow) * self.pxinX) -
+                    int(self.labelmas[i].winfo_width() / 2)) < 150 + self.label0x.winfo_width():
+                    self.labelmas[i].place(
+                        x=150 + self.label0x.winfo_width(),
+                        y=55 + self.canvas.winfo_height())
+
+        if len(labellinesy) < 10:
+            for i in range(len(labellinesy)):  # Градуировка оси OY
+                self.labelmas[i + len(labellinesx)]["text"] = str(round(float(labellinesy[i] * (self.HEIGHTy / 10)), 2))
+                self.labelmas[i + len(labellinesx)].update()
+                self.labelmas[i + len(labellinesx)].place(x=150 - int(self.labelmas[i + len(labellinesx)].winfo_width()),
+                                                          y=55 + self.canvas.winfo_height() - int(self.labelmas[i + len(labellinesx)].winfo_height() / 2) -
+                                                          int(((labellinesy[i] * (self.HEIGHTy / 10)) - self.startynow) * self.pxinY))
+                if (55 + self.canvas.winfo_height() - int(self.labelmas[i + len(labellinesx)].winfo_height() / 2) -
+                                                          int(((labellinesy[i] * (self.HEIGHTy / 10)) -
+                                                               self.startynow) * self.pxinY)) + self.labelmas[i + len(labellinesx)].winfo_height() > (55 + self.canvas.winfo_height() - self.label0y.winfo_height()):
+                    self.labelmas[i + len(labellinesx)].place(
+                        x=150 - int(self.labelmas[i + len(labellinesx)].winfo_width()),
+                        y=55 + self.canvas.winfo_height() - self.label0y.winfo_height() - self.labelmas[i + len(labellinesx)].winfo_height())
+                if (55 + self.canvas.winfo_height() - int(self.labelmas[i + len(labellinesx)].winfo_height() / 2) -
+                                                          int(((labellinesy[i] * (self.HEIGHTy / 10)) -
+                                                               self.startynow) * self.pxinY)) < (55 - self.label0y.winfo_height()):
+                    self.labelmas[i + len(labellinesx)].place(
+                        x=150 - int(self.labelmas[i + len(labellinesx)].winfo_width()),
+                        y=55 - self.label0y.winfo_height() + self.labelmas[i + len(labellinesx)].winfo_width())

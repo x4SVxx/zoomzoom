@@ -1,0 +1,713 @@
+import asyncio
+import random
+import time
+import keyboard
+import numpy as np
+from tkinter import filedialog as fd
+from tkinter import *
+import tkinter.messagebox as message
+from tag import Tag
+
+
+class peers_gui():
+    def __init__(self):
+
+        self.count = 0
+        self.cursorpos = []
+        self.flagactivescroll = True
+        def mouse_wheel(event):
+            if event.num == 5 or event.delta == -120:
+                if self.count > 0:
+                    if self.flagactivescroll:
+                        self.flagactivescroll = False
+                        self.count -= 1
+                        flaginout = False
+                        self.zoom(flaginout)
+                        self.canvas.delete('tt')
+                        self.canvas.create_oval(50*self.pxinX + int(self.coefzoomx)-100,
+                                                self.canvas.winfo_height() - 50*self.pxinY+int(self.coefzoomy)-100,
+                                                50*self.pxinX + int(self.coefzoomx) + 100,
+                                                self.canvas.winfo_height() - 50*self.pxinY+int(self.coefzoomy) + 100, tag='tt')
+                        self.flagactivescroll = True
+            if event.num == 4 or event.delta == 120:
+                if self.count < 5:
+                    if self.flagactivescroll:
+                        self.flagactivescroll = False
+                        self.count += 1
+                        flaginout = True
+                        self.zoom(flaginout)
+                        self.canvas.delete('tt')
+                        self.canvas.create_oval(50*self.pxinX + int(self.coefzoomx)-100,
+                                                self.canvas.winfo_height() - 50*self.pxinY+int(self.coefzoomy)-100,
+                                                50*self.pxinX + int(self.coefzoomx) + 100,
+                                                self.canvas.winfo_height() - 50*self.pxinY+int(self.coefzoomy) + 100, tag='tt')
+                        self.flagactivescroll = True
+
+        def Mousecoords(event):
+            pointxy = (event.x, self.canvas.winfo_height()-event.y)
+            self.cursorpos=list(pointxy)
+
+        self.tk = Tk()
+        self.WIDTHSCREEN = self.tk.winfo_screenwidth()
+        self.HEIGHTSCREEN = self.tk.winfo_screenheight()
+        self.tk.overrideredirect(True)
+        self.web_message_buffer =[]
+        self.tk.minsize(width=int(self.WIDTHSCREEN / 2), height=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3))
+        self.tk.maxsize(width=int(self.WIDTHSCREEN / 2), height=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3))
+        self.tk.wm_geometry(
+            "+%d+%d" % (int(self.WIDTHSCREEN / 2 - self.WIDTHSCREEN / 4), int(self.HEIGHTSCREEN / 2 - (self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) / 2)))
+        self.tk["bg"] = "light grey"
+
+        self.canvas = Canvas(self.tk, bg='white')
+        self.canvas.pack()
+        self.canvas.place(x=150, y=55, width=int(self.WIDTHSCREEN / 2 - 280), height=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3)-250)
+        # self.canvas.create_rectangle(100, 100, int(int((self.WIDTHSCREEN / 2 - 280)/10*4)), int((self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3 - 90)/3),
+        #                              outline='red', width=3)
+        self.labelx = Label(text="X", bg='light grey')
+        self.labely = Label(text="Y", bg='light grey')
+        self.labelx.pack()
+        self.labely.pack()
+        self.labelx.place(x=5, y=55)
+        self.labely.place(x=5, y=90)
+        self.labelx.update()
+        self.labely.update()
+
+        self.x = StringVar()
+        self.y = StringVar()
+
+        self.entryWIDTH = Entry(textvariable=self.x)
+        self.entryWIDTH.pack()
+        self.entryWIDTH.place(x=5 + self.labelx.winfo_width() + 3, y=55, width=60, height=30)
+        self.entryHEIGHT = Entry(textvariable=self.y)
+        self.entryHEIGHT.pack()
+        self.entryHEIGHT.place(x=5 + self.labely.winfo_width() + 3, y=90, width=60, height=30)
+
+        self.listcoords = Listbox(self.tk, bd=3, font=("Arial", 11))
+        self.listcoords.pack()
+        self.listcoords.place(x=150, y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3)-160,
+                              width=self.canvas.winfo_width()-250, height=150)
+        self.listcoords.update()
+
+        self.listcolors = Listbox(self.tk, bd=3, font=("Arial", 11))
+        self.listcolors.pack()
+        self.listcolors.place(x=150+self.listcoords.winfo_width()+5, y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3)-160,
+                              width=245, height=150)
+        self.listcolors.update()
+
+        self.labelmas = []
+
+        for i in range(20):
+            self.labelmas.append(Label)
+        for i in range(10):
+            self.labelmas[i] = Label(text=str(" "), bg='light grey', font=("Arial", 9))
+            self.labelmas[i].pack()
+            self.labelmas[i].update()
+            self.labelmas[i].place(x=150 - int(self.labelmas[i].winfo_width()),
+                                   y=55 - int(self.labelmas[i].winfo_height() / 2) + int(self.canvas.winfo_height() / 10 * i))
+        for i in range(10):
+            self.labelmas[i + 10] = Label(text=str(" "), bg='light grey', font=("Arial", 9))
+            self.labelmas[i + 10].pack()
+            self.labelmas[i + 10].update()
+            self.labelmas[i + 10].place(x=150 + int(self.canvas.winfo_width() / 10 * (10 - i)) - int(self.labelmas[i].winfo_width() / 2),
+                                        y=55 + self.canvas.winfo_height())
+        self.label0x = Label(text=" ", bg='light grey', font=("Arial", 9))
+        self.label0x.pack()
+        self.label0x.update()
+        self.label0x.place(x=150, y=55 + self.canvas.winfo_height())
+        self.label0y = Label(text=" ", bg='light grey', font=("Arial", 9))
+        self.label0y.pack()
+        self.label0y.update()
+        self.label0y.place(x=150 - int(self.label0y.winfo_width()),
+                           y=55 + self.canvas.winfo_height()-self.label0y.winfo_height())
+
+        self.pxinX = 1
+        self.pxinY = 1
+        self.WIDTHx = 1
+        self.HEIGHTy = 1
+
+        self.butstart = Button(text='START', bg='silver', command=self.start, bd=4, font=("Arial", 9))
+        self.butstart.pack()
+        self.butstart.place(x=5, y=5, width=60, height=30)
+
+        self.butcreate = Button(text='CREATE', bg='silver', command=self.create, bd=4, font=("Arial", 9))
+        self.butcreate.pack()
+        self.butcreate.place(x=5, y=130, width=65, height=30)
+        self.butstart["state"] = "disabled"
+
+        self.butclose = Button(text='×', bg='red', command=self.close, bd=2, font=("Arial", 20))
+        self.butclose.pack()
+        self.butclose.place(x=int(self.WIDTHSCREEN / 2 - 30), y=5, width=25, height=25)
+
+        self.masID=[]
+        self.tags = []
+        self.tagcolor = " "
+
+        self.butblack = Button(text='', bg='black', command=lambda: self.setcolor("black"), bd=1)
+        self.butgreen = Button(text='', bg='green', command=lambda: self.setcolor("green"), bd=1)
+        self.butyellow = Button(text='', bg='yellow', command=lambda: self.setcolor("yellow"), bd=1)
+        self.butblue = Button(text='', bg='blue', command=lambda: self.setcolor("blue"), bd=1)
+        self.butorange = Button(text='', bg='orange', command=lambda: self.setcolor("orange"), bd=1)
+        self.butred = Button(text='', bg='red', command=lambda: self.setcolor("red"), bd=1)
+        self.butblack.pack()
+        self.butgreen.pack()
+        self.butyellow.pack()
+        self.butblue.pack()
+        self.butorange.pack()
+        self.butred.pack()
+        self.butblack.place(x=150 + self.canvas.winfo_width() + 5,
+                            y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 90, width=0, height=0)
+        self.butgreen.place(x=150 + self.canvas.winfo_width() + 5,
+                            y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 15, width=0, height=0)
+        self.butyellow.place(x=150 + self.canvas.winfo_width() + 5,
+                             y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 30, width=0, height=0)
+        self.butblue.place(x=150 + self.canvas.winfo_width() + 5,
+                           y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 45, width=0, height=0)
+        self.butorange.place(x=150 + self.canvas.winfo_width() + 5,
+                             y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 60, width=0, height=0)
+        self.butred.place(x=150 + self.canvas.winfo_width() + 5,
+                          y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 75, width=0, height=0)
+
+        self.canvas.bind("<MouseWheel>", mouse_wheel)
+        self.canvas.bind('<Motion>', Mousecoords)
+        self.updateflag = 0
+        self.coefzoomx = 0
+        self.coefzoomy = 0
+        self.checkfloatWIDTH = False
+        self.checkfloatHEIGHT = False
+        self.startxnow = 0
+        self.startynow = 0
+        self.maxxnow = 0
+        self.maxynow = 0
+
+    def zoom(self, flaginout):
+        if self.count != 5:
+            lines = 10-self.count
+        if self.count == 5:
+            lines = 5
+        self.canvas.delete('grid')
+        for i in range(20):
+            self.labelmas[i]["text"] = " "
+            self.labelmas[i].place(x=1000000, y=1000000)
+
+        if self.count == 0:
+            self.pxinX = float(self.canvas.winfo_width() / self.WIDTHx)
+            self.pxinY = float(self.canvas.winfo_height() / self.HEIGHTy)
+            self.marking(10, 0, 0, self.WIDTHx, self.HEIGHTy)
+            self.coefzoomx = 0
+            self.coefzoomy = 0
+            self.maxxnow = self.WIDTHx
+            self.maxynow = self.HEIGHTy
+            self.startxnow = 0
+            self.startynow = 0
+        else:
+            if flaginout:
+                self.zoomin(lines)
+            else:
+                self.zoomout(lines)
+
+    def zoomin(self, lines):
+        if self.cursorpos[0] > self.canvas.winfo_width() / 2 and self.cursorpos[1] > self.canvas.winfo_height() / 2:
+            self.startxnow = self.startxnow + float(self.x.get()) / 10
+            self.startynow = self.startynow + float(self.y.get()) / 10
+            self.maxxnow = self.maxxnow
+            self.maxynow = self.maxynow
+            self.marking(lines, self.startxnow, self.startynow, self.maxxnow, self.maxynow)
+            self.coefzoomx = self.coefzoomx - (self.canvas.winfo_width() / 10)
+            self.coefzoomy = self.coefzoomy + (self.canvas.winfo_height() / 10)
+
+        if self.cursorpos[0] < self.canvas.winfo_width() / 2 and self.cursorpos[1] > self.canvas.winfo_height() / 2:
+            self.startxnow = self.startxnow
+            self.startynow = self.startynow + float(self.y.get()) / lines+1
+            self.maxxnow = self.maxxnow - float(self.x.get()) / lines+1
+            self.maxynow = self.maxynow
+            self.marking(lines, self.startxnow, self.startynow, self.maxxnow, self.maxynow)
+            self.coefzoomx = self.coefzoomx + (self.canvas.winfo_width() / 10)
+            self.coefzoomy = self.coefzoomy + (self.canvas.winfo_height() / 10)
+
+        if self.cursorpos[0] < self.canvas.winfo_width() / 2 and self.cursorpos[1] < self.canvas.winfo_height() / 2:
+            self.startxnow = self.startxnow
+            self.startynow = self.startynow
+            self.maxxnow = self.maxxnow - float(self.x.get()) / 10
+            self.maxynow = self.maxynow - float(self.y.get()) / 10
+            self.marking(lines, self.startxnow, self.startynow, self.maxxnow, self.maxynow)
+            self.coefzoomx = self.coefzoomx + (self.canvas.winfo_width() / 10)
+            self.coefzoomy = self.coefzoomy - (self.canvas.winfo_height() / 10)
+
+        if self.cursorpos[0] > self.canvas.winfo_width() / 2 and self.cursorpos[1] < self.canvas.winfo_height() / 2:
+            self.startxnow = self.startxnow + float(self.x.get()) / 10
+            self.startynow = self.startynow
+            self.maxxnow = self.maxxnow
+            self.maxynow = self.maxynow - float(self.y.get()) / 10
+            self.marking(lines, self.startxnow, self.startynow, self.maxxnow, self.maxynow)
+            self.coefzoomx = self.coefzoomx - (self.canvas.winfo_width() / 10)
+            self.coefzoomy = self.coefzoomy - (self.canvas.winfo_height() / 10)
+
+    def zoomout(self, lines):
+        if self.cursorpos[0] > self.canvas.winfo_width() / 2 and self.cursorpos[1] > self.canvas.winfo_height() / 2:
+            if self.startxnow != 0:
+                self.startxnow = self.startxnow - float(self.x.get()) / 10
+                self.coefzoomx = self.coefzoomx + self.canvas.winfo_width() / 10
+            else:
+                self.startxnow = self.startxnow
+                self.maxxnow = self.maxxnow + float(self.x.get()) / 10
+                self.coefzoomx = self.coefzoomx - self.canvas.winfo_width() / 10
+            if self.startynow != 0:
+                self.startynow = self.startynow - float(self.y.get()) / 10
+                self.coefzoomy = self.coefzoomy - self.canvas.winfo_height() / 10
+            else:
+                self.startynow = self.startynow
+                self.maxynow = self.maxynow + float(self.y.get()) / 10
+                self.coefzoomy = self.coefzoomy + self.canvas.winfo_height() / 10
+            self.marking(lines, self.startxnow, self.startynow, self.maxxnow, self.maxynow)
+
+        if self.cursorpos[0] < self.canvas.winfo_width() / 2 and self.cursorpos[1] > self.canvas.winfo_height() / 2:
+            if self.startynow != 0:
+                self.startynow = self.startynow - float(self.y.get()) / 10
+                self.coefzoomy = self.coefzoomy - self.canvas.winfo_height() / 10
+            else:
+                self.startynow = self.startynow
+                self.maxynow = self.maxynow + float(self.y.get()) / 10
+                self.coefzoomy = self.coefzoomy + self.canvas.winfo_height() / 10
+            if self.maxxnow != self.WIDTHx:
+                self.maxxnow = self.maxxnow + float(self.x.get()) / 10
+                self.coefzoomx = self.coefzoomx - self.canvas.winfo_width() / 10
+            else:
+                self.maxxnow = self.maxxnow
+                self.startxnow = self.startxnow - float(self.x.get()) / 10
+                self.coefzoomx = self.coefzoomx + self.canvas.winfo_width() / 10
+            self.marking(lines, self.startxnow, self.startynow, self.maxxnow, self.maxynow)
+
+        if self.cursorpos[0] < self.canvas.winfo_width() / 2 and self.cursorpos[1] < self.canvas.winfo_height() / 2:
+            if self.maxxnow != self.WIDTHx:
+                self.maxxnow = self.maxxnow + float(self.x.get()) / 10
+                self.coefzoomx = self.coefzoomx - self.canvas.winfo_width() / 10
+            else:
+                self.maxxnow = self.maxxnow
+                self.startxnow = self.startxnow - float(self.x.get()) / 10
+                self.coefzoomx = self.coefzoomx + self.canvas.winfo_width() / 10
+            if self.maxynow != self.HEIGHTy:
+                self.maxynow = self.maxynow + float(self.y.get()) / 10
+                self.coefzoomy = self.coefzoomy + self.canvas.winfo_height() / 10
+            else:
+                self.maxynow = self.maxynow
+                self.startynow = self.startynow - float(self.y.get()) / 10
+                self.coefzoomy = self.coefzoomy - self.canvas.winfo_height() / 10
+            self.marking(lines, self.startxnow, self.startynow, self.maxxnow, self.maxynow)
+
+        if self.cursorpos[0] > self.canvas.winfo_width() / 2 and self.cursorpos[1] < self.canvas.winfo_height() / 2:
+            if self.startxnow != 0:
+                self.startxnow = self.startxnow - float(self.x.get()) / 10
+                self.coefzoomx = self.coefzoomx + self.canvas.winfo_width() / 10
+            else:
+                self.startxnow = self.startxnow
+                self.maxxnow = self.maxxnow + float(self.x.get()) / 10
+                self.coefzoomx = self.coefzoomx - self.canvas.winfo_width() / 10
+            if self.maxynow != self.HEIGHTy:
+                self.maxynow = self.maxynow + float(self.y.get()) / 10
+                self.coefzoomy = self.coefzoomy + self.canvas.winfo_height() / 10
+            else:
+                self.maxynow = self.maxynow
+                self.startynow = self.startynow - float(self.y.get()) / 10
+                self.coefzoomy = self.coefzoomy - self.canvas.winfo_height() / 10
+            self.marking(lines, self.startxnow, self.startynow, self.maxxnow, self.maxynow)
+
+    def setcolor(self, color):
+        self.tagcolor = color
+        self.tags[self.select[0]].color=self.tagcolor
+        self.select = []
+        self.listcolors.select_clear(0, 'end')
+        self.butblack.place(x=150 + self.canvas.winfo_width() + 5,
+                            y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 90, width=0, height=0)
+        self.butgreen.place(x=150 + self.canvas.winfo_width() + 5,
+                            y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 15, width=0, height=0)
+        self.butyellow.place(x=150 + self.canvas.winfo_width() + 5,
+                             y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 30, width=0, height=0)
+        self.butblue.place(x=150 + self.canvas.winfo_width() + 5,
+                           y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 45, width=0, height=0)
+        self.butorange.place(x=150 + self.canvas.winfo_width() + 5,
+                             y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 60, width=0, height=0)
+        self.butred.place(x=150 + self.canvas.winfo_width() + 5,
+                          y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 75, width=0, height=0)
+
+    def isFloat(self, value):
+        try:
+            float(value)
+            return True
+        except ValueError:
+            return False
+
+    def create(self):
+        self.WIDTHx = self.x.get()
+        self.HEIGHTy = self.y.get()
+        self.checkfloatWIDTH = self.isFloat(self.WIDTHx)
+        self.checkfloatHEIGHT = self.isFloat(self.HEIGHTy)
+        if self.checkfloatWIDTH:
+            self.WIDTHx = float(self.x.get())
+            self.maxxnow = self.WIDTHx
+        if self.checkfloatHEIGHT:
+            self.HEIGHTy = float(self.y.get())
+            self.maxynow = self.HEIGHTy
+        if (self.checkfloatHEIGHT and self.checkfloatWIDTH):
+            self.pxinX = float(self.canvas.winfo_width() / self.WIDTHx)
+            self.pxinY = float(self.canvas.winfo_height() / self.HEIGHTy)
+            self.marking(10, 0, 0, self.WIDTHx, self.HEIGHTy)
+            self.butstart["state"] = "active"
+        else:
+            msg = "Error input"
+            message.showerror("Error", msg)
+        self.canvas.create_oval(self.canvas.winfo_width() / 2 - 100,
+                                self.canvas.winfo_height() - self.canvas.winfo_height() / 2 - 100,
+                                self.canvas.winfo_width() / 2 + 100, self.canvas.winfo_height() - self.canvas.winfo_height() / 2 + 100, tag='tt')
+
+    def marking(self, lines, startx, starty, stopx, stopy):
+            self.canvas.create_line(3, self.canvas.winfo_height() - 3, 3, 0, width=2, tag='grid')
+            self.canvas.create_line(3, self.canvas.winfo_height() - 3, int(self.WIDTHSCREEN / 2),
+                                    self.canvas.winfo_height() - 3,
+                                    width=2, tag='grid')
+            for i in range(lines):
+                self.canvas.create_line(0, int(self.canvas.winfo_height() / lines * (i + 1)), 10,
+                                        int(self.canvas.winfo_height() / lines * (i + 1)), width=2, tag='grid')
+                self.canvas.create_line(0, int(self.canvas.winfo_height() / lines * (i + 1)),
+                                        int(self.canvas.winfo_width()),
+                                        int(self.canvas.winfo_height() / lines * (i + 1)), width=1, fill="light grey",
+                                        tag='grid')
+                self.canvas.create_line(int(self.canvas.winfo_width() / lines * (i + 1)),
+                                        self.canvas.winfo_height()-10,
+                                        int(self.canvas.winfo_width() / lines * (i + 1)), self.canvas.winfo_height(),
+                                        width=2, tag='grid')
+                self.canvas.create_line(int(self.canvas.winfo_width() / lines * (i + 1)), 0,
+                                        int(self.canvas.winfo_width() / lines * (i + 1)), self.canvas.winfo_height(),
+                                        width=1, fill="light grey", tag='grid')
+
+            for i in range(lines):
+                self.labelmas[i]["text"] = str(round(float(starty + self.HEIGHTy/10*(i+1)), 2))
+                self.labelmas[i].update()
+                self.labelmas[i].place(x=150 - int(self.labelmas[i].winfo_width()),
+                                       y=55 - int(self.labelmas[i].winfo_height() / 2) +
+                                       int(self.canvas.winfo_height() / lines * (lines - i-1)))
+            for i in range(lines):
+                self.labelmas[i + lines]["text"] = str(round(float(startx + self.WIDTHx/10*(i+1)), 2))
+                self.labelmas[i + lines].update()
+                self.labelmas[i + lines].place(
+                    x=150 + int(self.canvas.winfo_width() / lines * (i+1)) -
+                    int(self.labelmas[i].winfo_width() / 2),
+                    y=55 + self.canvas.winfo_height())
+            self.label0x['text'] = str(round(startx, 2))
+            self.label0x.update()
+            self.label0x.place(x=150, y=55 + self.canvas.winfo_height())
+            self.label0y['text'] = str(round(starty, 2))
+            self.label0y.update()
+            self.label0y.place(x=150 - int(self.label0y.winfo_width()),
+                               y=55 + self.canvas.winfo_height() - self.label0y.winfo_height())
+
+    def drawframe(self, line):
+        data = line.split()
+        ID = data[0]
+        match_flag = 0
+        self.updateflag += 1
+        if self.updateflag > 10:
+            for tag in self.tags:
+                tag.drawme(self.canvas, self.listcoords, self.pxinX, self.pxinY, self.tags, self.coefzoomx,
+                           self.coefzoomy)
+            self.updateflag = 0
+
+        for tag in self.tags:
+            if tag.check(data):
+                self.select = list(self.listcolors.curselection())
+                if len(self.select) != 0:
+                    self.butblack.place(x=150 + self.canvas.winfo_width() + 5,
+                                        y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 150, width=30, height=20)
+                    self.butgreen.place(x=150 + self.canvas.winfo_width() + 5,
+                                        y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 25, width=30, height=20)
+                    self.butyellow.place(x=150 + self.canvas.winfo_width() + 5,
+                                         y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 50, width=30,
+                                         height=20)
+                    self.butblue.place(x=150 + self.canvas.winfo_width() + 5,
+                                       y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 75, width=30, height=20)
+                    self.butorange.place(x=150 + self.canvas.winfo_width() + 5,
+                                         y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 100, width=30,
+                                         height=20)
+                    self.butred.place(x=150 + self.canvas.winfo_width() + 5,
+                                      y=int(self.HEIGHTSCREEN - self.HEIGHTSCREEN / 3) - 10 - 125, width=30, height=20)
+                tag.update(data, self.tagcolor, self.listcolors, self.tags)
+                self.tagcolor = " "
+                tag.drawme(self.canvas, self.listcoords, self.pxinX, self.pxinY, self.tags, self.coefzoomx,
+                           self.coefzoomy)
+                # if int(tag.x/self.pxinX)>int(self.canvas.winfo_width()/2) and int(tag.y/self.pxinY)<int(self.canvas.winfo_height()/2):
+                #     self.listdangerous.delete(0, 'end')
+                #     self.listdangerous.insert('end', str(ID)+str('DANGEROUS'))
+                #     self.listdangerous.itemconfig(0, {'fg': 'red'})
+                # else:
+                #     self.listdangerous.delete(0, 'end')
+                match_flag = 1
+
+        if match_flag == 0:
+            tag = Tag(data, self.listcolors)
+            print("NEW TAG")
+            self.tags.append(tag)
+            tag.drawme(self.canvas, self.listcoords, self.pxinX, self.pxinY, self.tags,
+                       self.coefzoomx, self.coefzoomy)
+
+    def start(self):
+        filename = fd.askopenfilename()
+        f = open(filename, 'r')
+        while True:
+            line = f.readline()
+            if not line:
+                break
+            else:
+                self.drawframe(line)
+                time.sleep(0.05)
+        # while True:
+        #     current_message = ""
+        #     if len(self.web_message_buffer) > 0:
+        #         current_message = self.web_message_buffer.pop()
+        #         print(current_message)
+        #         self.drawframe(current_message)
+
+    def close(self):
+        self.tk.destroy()
+
+a=peers_gui()
+a.tk.mainloop()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import asyncio
+import logging
+import threading
+import websockets
+from websockets import WebSocketServerProtocol
+import logsreader
+logging.basicConfig(level=logging.INFO)
+SERVER = '192.168.43.196'
+PORT = "5050"
+
+
+class Web_client():
+
+    def __init__(self, ipaddres, port):
+        self.ipaddr = ipaddres
+        self.port = port
+        self.websocket_resourse_url = f"ws://{SERVER}:{PORT}/web"
+
+    async def handler(self, websocket: WebSocketServerProtocol) -> None:
+        consumer_task = asyncio.ensure_future(
+            self.consumer_handler(websocket))
+        producer_task = asyncio.ensure_future(
+            self.producer_handler(websocket))
+        done, pending = await asyncio.wait(
+            [consumer_task, producer_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        for task in pending:
+            task.cancel()
+
+    async def consumer_handler(self,websocket: WebSocketServerProtocol):
+        async for message in websocket:
+            await self.consumer(message)
+
+    async def consumer(self, message):
+        await asyncio.sleep(0.0001)
+        gui.web_message_buffer.append(message)
+
+    async def producer_handler(self,websocket: WebSocketServerProtocol):
+        while True:
+            await asyncio.sleep(0.0001)
+            message = await self.producer()
+
+    async def producer(self):
+       await asyncio.sleep(0.0001)
+
+    def log_message(self,message: str) -> None:
+        logging.info(f"Message:{message}")
+
+    async def connect(self):
+        async with websockets.connect(self.websocket_resourse_url) as ws:
+            await self.handler(ws)
+
+
+def asyncio_thread(async_loop):
+    async_loop.run_until_complete(client.connect())
+
+
+if __name__ == '__main__':
+    gui = logsreader.peers_gui()
+    client = Web_client("192.168.0.174", "5050")
+    loop = asyncio.get_event_loop()
+    threading.Thread(target=asyncio_thread, args=(loop,)).start()
+    gui.tk.mainloop()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import random
+from math import sqrt
+from tkinter import *
+
+
+class Tag():
+    def __init__(self, data, listcolors):
+        self.ID = str(data[0])
+        self.colormas = ["green", "yellow", "black", "orange", "red", "blue", "grey"]
+        self.color = random.choice(self.colormas)
+        self.label = Label(text=self.ID, bg='white', font=("Arial", 7))
+        self.label.pack()
+        self.label.place(x=250, y=250)
+        listcolors.insert('end', "Color: " + str(self.color))
+        # self.Name = ""
+        # self.man = 0
+        # if self.ID == "dead1050b445b9":
+        #     self.Name = "Chernyh "
+        #     self.color = "blue"
+        #     self.man = 1
+        # elif self.ID == "dead1010b44980":
+        #     self.Name = "Malyshev"
+        #     self.color = "blue"
+        #     self.man = 1
+        # elif self.ID == "beef1050b3c216":
+        #     self.Name = "Vehicle1"
+        #     self.color = "black"
+        # else:
+        #     self.Name = "Unknown"
+        self.x = float(data[1])+5
+        self.y = float(data[2])+5
+        # self.lat = 0.0
+        # self.lon = 0.0
+        self.maspathx = []
+        self.maspathy = []
+        # self.hours = 0.
+        self.message1 = ""
+        self.message2 = ""
+
+    def check(self, data):
+        if (data[0]) == (self.ID):
+            return True
+        else:
+            return False
+
+    def update(self, data, color, listcolors, tags):
+        self.x = float(data[1])+5
+        self.y = float(data[2])+5
+        if len(self.maspathx) == 5:
+            del self.maspathx[0]
+            del self.maspathy[0]
+        self.maspathx.append(self.x)
+        self.maspathy.append(self.y)
+
+        if color == " ":
+            pass
+        else:
+            listcolors.delete(0, 'end')
+            for tag in tags:
+                listcolors.insert('end', "Color: " + str(tag.color))
+
+        # self.hours = float(data[3])
+        # self.lat = 55.7522 + random.normalvariate(0, 0.001)
+        # self.lon = 37.6156 + random.normalvariate(0, 0.001)
+        # if self.x < 4:
+        #     self.message2 = self.Name + " В опасной зоне"
+        # else:
+        #     self.message2 = ""
+
+    def drawme(self, canvas, listcoords, pxinX, pxinY, tags, coefzoomx, coefzoomy):
+        canvas.delete('ID'+str(self.ID))
+        canvas.create_oval(int(self.x*pxinX) + int(coefzoomx) - 3, canvas.winfo_height()-int(self.y*pxinY) + int(coefzoomy) - 3,
+                           int(self.x*pxinX) + int(coefzoomx) + 6,
+                           canvas.winfo_height()-int(self.y*pxinY) + int(coefzoomy) + 6, fill=self.color, tag='ID'+str(self.ID))
+
+        self.label.update()
+        self.label.place(x=int(self.x*pxinX) + int(coefzoomx) + 150 - self.label.winfo_width() / 2,
+                         y=canvas.winfo_height()-int(self.y*pxinY) + int(coefzoomy) - self.label.winfo_height() - 10 + 55)
+
+        canvas.delete('path')
+        for j in range(len(self.maspathx)):
+            if j == 0:
+                canvas.create_oval(int(self.maspathx[j] * pxinX) + int(coefzoomx) - 1,
+                                   canvas.winfo_height() - int(self.maspathy[j] * pxinY) + int(coefzoomy) - 1,
+                                   int(self.maspathx[j] * pxinX) + int(coefzoomx) + 2,
+                                   canvas.winfo_height() - int(self.maspathy[j] * pxinY) + int(coefzoomy) + 2,
+                                   fill=self.color, tag='path')
+            if j == 1:
+                canvas.create_oval(int(self.maspathx[j] * pxinX) + int(coefzoomx) - 1,
+                                   canvas.winfo_height() - int(self.maspathy[j] * pxinY) + int(coefzoomy) - 1,
+                                   int(self.maspathx[j] * pxinX) + int(coefzoomx) + 2,
+                                   canvas.winfo_height() - int(self.maspathy[j] * pxinY) + int(coefzoomy) + 2,
+                                   fill=self.color, tag='path')
+            if j == 2:
+                canvas.create_oval(int(self.maspathx[j] * pxinX) + int(coefzoomx) - 2,
+                                   canvas.winfo_height() - int(self.maspathy[j] * pxinY) + int(coefzoomy) - 4,
+                                   int(self.maspathx[j] * pxinX) + int(coefzoomx) + 2,
+                                   canvas.winfo_height() - int(self.maspathy[j] * pxinY) + int(coefzoomy) + 4,
+                                   fill=self.color, tag='path')
+            if j == 3:
+                canvas.create_oval(int(self.maspathx[j] * pxinX) + int(coefzoomx) - 2,
+                                   canvas.winfo_height() - int(self.maspathy[j] * pxinY) + int(coefzoomy) - 2,
+                                   int(self.maspathx[j] * pxinX) + int(coefzoomx) + 4,
+                                   canvas.winfo_height() - int(self.maspathy[j] * pxinY) + int(coefzoomy) + 4,
+                                   fill=self.color, tag='path')
+            if j == 4:
+                canvas.create_oval(int(self.maspathx[j] * pxinX) + int(coefzoomx) - 3,
+                                   canvas.winfo_height() - int(self.maspathy[j] * pxinY) + int(coefzoomy) - 3,
+                                   int(self.maspathx[j] * pxinX) + int(coefzoomx) + 6,
+                                   canvas.winfo_height() - int(self.maspathy[j] * pxinY) + int(coefzoomy) + 6,
+                                   fill=self.color, tag='path')
+        canvas.update()
+        # flag = 0
+        # for tag1 in tags:
+        #     if tag1.Name == "Vehicle1":
+        #         CAR1 = tag1
+        #         flag = 1
+        #         break
+
+        # if self.man and flag:
+        #     R = sqrt(pow(self.x - CAR1.x,2) + pow(self.y - CAR1.y, 2))
+        #     print(CAR1.x)
+        #     print(CAR1.y)
+        #     print(self.x)
+        #     print(self.y)
+        #     print(R)
+        #     if R < 1.:
+        #         self.message1 = self.Name + "Опасность"
+        #     else:
+        #         self.message1 = ""
+
+        listcoords.delete(0, 'end')
+        for tag in tags:
+            listcoords.insert('end', tag.ID + " X: " + str(round(tag.x, 2)) + " Y: " + str(round(tag.y, 2)))
+            # listcoords.insert('end', tag.Name + " RTLS: " + str(tag.x) + " " + str(tag.y) + " GPS: " + " " +
+            #                   str(round(tag.lat,5)) + " " + str(round(tag.lon,5)) + " Смена: " + str(tag.hours) +
+            #                   " часов. ")
+        # listdangerous.delete(0, 'end')
+        #         # for tag in tags:
+        #         #     if len(tag.message1) > 5:
+        #         #         listdangerous.insert('end', tag.message1)
+        #         #     if len(tag.message2) > 5:
+        #         #         listdangerous.insert('end', tag.message2)
